@@ -29,9 +29,9 @@ for mod in np, scipy, sns, sklearn, pd:
     print(mod.__name__, mod.__version__)
 
 # kaggle train data
-data_df = pd.read_csv("data/train.csv")
+data_df = pd.read_csv("./data/train.csv")
 # kaggle test data
-test_df = pd.read_csv("data/test.csv")
+test_df = pd.read_csv("./data/test.csv")
 
 all_data = pd.concat((data_df.loc[:,:], test_df.loc[:, :]))
 all_data.head()
