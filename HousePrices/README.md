@@ -1,4 +1,4 @@
-
+房价预测
 https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques
 房价数据，有79个feature，有train和test样本，对test中房价进行预测。
 SalePrice（因变量）和其余feature（自变量）的关系。
