@@ -39,10 +39,12 @@ def main():
 
     for epoch in range(num_epochs):
         for i ,(features,labels) in enumerate(train_loader):
+            #前向传播
             outputs =model(features)
             loss = criterion(outputs,labels)
 
-
+            #反向传播及优化
+            #清空梯度缓存
             optimizer.zero_grad()
 
             loss.backward()
