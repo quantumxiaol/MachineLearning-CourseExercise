@@ -113,7 +113,9 @@ def remove_outliers(dataset, threshold, columns=None, removed = False):
 
 plt.figure(figsize=(8, 5))
 sns.set(font_scale=1.2)
-sns.scatterplot(data_df["GrLivArea"], data_df["SalePrice"])
+
+#sns.scatterplot(data_df["GrLivArea"], data_df["SalePrice"])
+
 # plt.vlines(4500, ymax=800000, ymin=0)
 plt.title("GrLivArea vs SalePrice")
 
@@ -244,7 +246,7 @@ print("\nHighly skewed features: \n\n{}".format(skewed_features.tolist()))
 
 
 
-The “optimal lambda” is the one that results in the best approximation of a normal distribution curve. I selected lambda= 0.15.
+#The “optimal lambda” is the one that results in the best approximation of a normal distribution curve. I selected lambda= 0.15.
 
 lambda_ = 0.15
 for feature in skewed_features:
@@ -348,7 +350,10 @@ all_data['IsOpenPorch'] = all_data['OpenPorchSF'].apply(lambda x: 1 if x > 0 els
 # If the house has Wood Deck
 all_data['IsWoodDeck'] = all_data['WoodDeckSF'].apply(lambda x: 1 if x > 0 else 0)
 
+all_data = all_data.drop(["SalePrice"], axis = 1)
 
+hot_one_features = pd.get_dummies(all_data).reset_index(drop=True)
+hot_one_features.shape
 all_data = pd.concat([transformed_df, hot_one_features],axis=1)
 
 train_preprocessed = all_data.iloc[:len(data_df),:]
@@ -394,14 +399,14 @@ print("RMSE score for Linear Regression: {:.3f}".format(rmse(lr_model)))
 
 sns.set(font_scale=1.5)
 plt.figure(figsize=(10,6))
-sns.scatterplot(y_train, y_train_pred)
+#sns.scatterplot(y_train, y_train_pred)
 plt.xlabel("Prices")
 plt.ylabel("Predicted prices")
 plt.title("Prices vs. Predicted Prices")
 
 # Residual plot - result should be randomly located around the 0 value
 plt.figure(figsize=(10,6))
-sns.scatterplot(y_train_pred, y_train_pred - y_train)
+#sns.scatterplot(y_train_pred, y_train_pred - y_train)
 plt.title("Residual Plot")
 plt.xlabel("Predicted values")
 plt.ylabel("Residuals")
@@ -422,7 +427,7 @@ print("RMSE score for LASSO: {:.3f}".format(rmse(lasso_model)))
 
 # Plotting predictions
 plt.figure(figsize=(10,6))
-sns.scatterplot(y_train_pred, y_train)
+#sns.scatterplot(y_train_pred, y_train)
 plt.title("Linear regression with Lasso regularization")
 plt.xlabel("Predicted Prices")
 plt.ylabel("Real  Prices")

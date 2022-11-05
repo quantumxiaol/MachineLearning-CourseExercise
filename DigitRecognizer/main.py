@@ -21,8 +21,8 @@ def main():
     num_epochs = 5
     batch_size = 30
     learning_rate = 0.001
-    data_train = pd.read_csv('./data/train.csv')
-    data_test = pd.read_csv('./data/test.csv')
+    data_train = pd.read_csv('./Data/train.csv')
+    data_test = pd.read_csv('./Data/test.csv')
     train_dataset = DatasetMNIST(data_train)
     test_dataset = DatasetMNIST(data_test)
 
