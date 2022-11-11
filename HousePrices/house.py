@@ -14,21 +14,24 @@ from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, Regre
 import sklearn_pandas
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import cross_val_score,train_test_split
-from scipy import stats
-from scipy.stats import skew
+from sklearn.model_selection import GridSearchCV, KFold
+
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, SGDRegressor, BayesianRidge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.svm import SVR, LinearSVR
 from sklearn.decomposition import PCA, KernelPCA
-from sklearn.model_selection import cross_val_score, GridSearchCV, KFold
 
 from xgboost import XGBRegressor
 
+import scipy
+from scipy import stats
+from scipy.stats import skew
 from scipy.special import boxcox1p
+
 import csv
 import sys
-import scipy
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -39,11 +42,17 @@ test = pd.read_csv(r'./data/test.csv')
 # pd.options.display.max_columns = 10000
 # pd.options.display.max_rows = 500
 
-train.head()
+# train.head()
 #查看训练集基本信息
-train.info()
+# train.info()
 #查看训练集数据的维度                      
 
+# plt.figure(figsize=(12,6))
+# plt.scatter(x=train.GrLivArea, y=train.SalePrice)
+# plt.xlabel("GrLivArea", fontsize=13)
+# plt.ylabel("SalePrice", fontsize=13)
+# plt.ylim(0,800000)
+#删除异常值
 train.drop(train[(train["GrLivArea"]>4000)&(train["SalePrice"]<300000)].index,inplace=True)
 
 origin=pd.concat([train,test], ignore_index=True)
@@ -62,6 +71,16 @@ origin.groupby(['LotAreaCut'])[['LotFrontage']].agg(['mean','median','count'])
 
 origin['LotFrontage']=origin.groupby(['LotAreaCut','Neighborhood'])['LotFrontage'].transform(lambda x: x.fillna(x.median()))
 origin['LotFrontage']=origin.groupby(['LotAreaCut'])['LotFrontage'].transform(lambda x: x.fillna(x.median()))
+
+
+
+
+#可以用0来填补。
+#是一个一个面积(喜
+cols=["MasVnrArea", "BsmtUnfSF", "TotalBsmtSF", "GarageCars", "BsmtFinSF2", "BsmtFinSF1", "GarageArea"]
+for col in cols:
+    origin[col].fillna(0, inplace=True)
+
 #可以用 “None” 来填补
 cols1 = ["PoolQC" , "MiscFeature", "Alley", "Fence", "FireplaceQu", 
         "GarageQual", "GarageCond", "GarageFinish", "GarageYrBlt", 
@@ -70,18 +89,18 @@ cols1 = ["PoolQC" , "MiscFeature", "Alley", "Fence", "FireplaceQu",
 for col in cols1:
     origin[col].fillna("None", inplace=True)
 
-#可以用0来填补。
-#是一个一个面积(喜
-cols=["MasVnrArea", "BsmtUnfSF", "TotalBsmtSF", "GarageCars", "BsmtFinSF2", "BsmtFinSF1", "GarageArea"]
-for col in cols:
-    origin[col].fillna(0, inplace=True)
 
+cols2 = ["MSZoning", "BsmtFullBath", "BsmtHalfBath", "Utilities", "Functional", "Electrical", "KitchenQual", "SaleType","Exterior1st", "Exterior2nd"]
+for col in cols2:
+    origin[col].fillna(origin[col].mode()[0], inplace=True)
 
 
 #用这两个特征分组后的中位数进行插补
 #origin['LotFrontage']=origin.groupby(['LotAreaCut','Neighborhood'])['LotFrontage'].transform(lambda x: x.fillna(x.median()))
 
+#验证无空数据
 
+#print('空数据?\n',origin.isnull().sum()[origin.isnull().sum()>0])
 
 ###特征工程 (Feature Engineering)
 
@@ -96,34 +115,35 @@ for col in NumStr:
     origin[col]=origin[col].astype(str)
 
 #MSSubClass这个特征表示房子的类型，将数据按其分组：
+
 origin.groupby(['MSSubClass'])[['SalePrice']].agg(['mean','median','count'])
 
 def map_values():
-    origin["oMSSubClass"] = origin.MSSubClass.map({'180':1, 
-                                        '30':2, '45':2, 
-                                        '190':3, '50':3, '90':3, 
-                                        '85':4, '40':4, '160':4, 
-                                        '70':5, '20':5, '75':5, '80':5, '150':5,
-                                        '120': 6, '60':6})
+    origin["oMSSubClass"] = origin.MSSubClass.map({ '180':1, 
+                                                    '30':2, '45':2, 
+                                                    '190':3, '50':3, '90':3, 
+                                                    '85':4, '40':4, '160':4, 
+                                                    '70':5, '20':5, '75':5, '80':5, '150':5,
+                                                    '120': 6, '60':6})
     
     origin["oMSZoning"] = origin.MSZoning.map({'C (all)':1, 'RH':2, 'RM':2, 'RL':3, 'FV':4})
     
-    origin["oNeighborhood"] = origin.Neighborhood.map({'MeadowV':1,
-                                               'IDOTRR':2, 'BrDale':2,
-                                               'OldTown':3, 'Edwards':3, 'BrkSide':3,
-                                               'Sawyer':4, 'Blueste':4, 'SWISU':4, 'NAmes':4,
-                                               'NPkVill':5, 'Mitchel':5,
-                                               'SawyerW':6, 'Gilbert':6, 'NWAmes':6,
-                                               'Blmngtn':7, 'CollgCr':7, 'ClearCr':7, 'Crawfor':7,
-                                               'Veenker':8, 'Somerst':8, 'Timber':8,
-                                               'StoneBr':9,
-                                               'NoRidge':10, 'NridgHt':10})
+    origin["oNeighborhood"] = origin.Neighborhood.map({ 'MeadowV':1,
+                                                        'IDOTRR':2, 'BrDale':2,
+                                                        'OldTown':3, 'Edwards':3, 'BrkSide':3,
+                                                        'Sawyer':4, 'Blueste':4, 'SWISU':4, 'NAmes':4,
+                                                        'NPkVill':5, 'Mitchel':5,
+                                                        'SawyerW':6, 'Gilbert':6, 'NWAmes':6,
+                                                        'Blmngtn':7, 'CollgCr':7, 'ClearCr':7, 'Crawfor':7,
+                                                        'Veenker':8, 'Somerst':8, 'Timber':8,
+                                                        'StoneBr':9,
+                                                        'NoRidge':10, 'NridgHt':10})
     
-    origin["oCondition1"] = origin.Condition1.map({'Artery':1,
-                                           'Feedr':2, 'RRAe':2,
-                                           'Norm':3, 'RRAn':3,
-                                           'PosN':4, 'RRNe':4,
-                                           'PosA':5 ,'RRNn':5})
+    origin["oCondition1"] = origin.Condition1.map({ 'Artery':1,
+                                                    'Feedr':2, 'RRAe':2,
+                                                    'Norm':3, 'RRAn':3,
+                                                    'PosN':4, 'RRNe':4,
+                                                    'PosA':5 ,'RRNn':5})
     
     origin["oBldgType"] = origin.BldgType.map({'2fmCon':1, 'Duplex':1, 'Twnhs':1, '1Fam':2, 'TwnhsE':2})
     
@@ -211,7 +231,8 @@ class skew_dummies(BaseEstimator, TransformerMixin):
         X[skewness_features] = np.log1p(X[skewness_features])
         X = pd.get_dummies(X)
         return X
-pipe = Pipeline([
+
+pipe0 = Pipeline([
     ('labenc', labelenc()),
     ('skew_dummies', skew_dummies(skew=1)),
     ])
@@ -219,7 +240,7 @@ pipe = Pipeline([
 # save the original data for later use
 fu = origin.copy()
 
-data_pipe = pipe.fit_transform(fu)
+data_pipe = pipe0.fit_transform(fu)
 
 #data_pipe.shape  (2917, 405)
 #使用RobustScaler()，应对可能的其他异常值。
@@ -286,7 +307,6 @@ class add_feature(BaseEstimator, TransformerMixin):
             X["-_oCondition1_TotalHouse"] = X["oCondition1"] * X["TotalHouse"]
             X["-_oCondition1_OverallQual"] = X["oCondition1"] + X["OverallQual"]
             
-           
             X["Bsmt"] = X["BsmtFinSF1"] + X["BsmtFinSF2"] + X["BsmtUnfSF"]
             X["Rooms"] = X["FullBath"]+X["TotRmsAbvGrd"]
             X["PorchArea"] = X["OpenPorchSF"]+X["EnclosedPorch"]+X["3SsnPorch"]+X["ScreenPorch"]
@@ -299,11 +319,13 @@ pipe = Pipeline([
     ('add_feature', add_feature(additional=2)),
     ('skew_dummies', skew_dummies(skew=1)),
     ])
+print("1919810\n")
+print('114514\n')
 
-print("\nherehere\n")
 #PCA去除导致多重共线性的特征。
 origin_pipe = pipe.fit_transform(origin)
-#origin_pipe.shape  (2917, 426)
+origin_pipe.shape  #(2917, 426)
+print("\nherehere\n")
 n_train=train.shape[0]
 X = origin_pipe[:n_train]
 test_X = origin_pipe[n_train:]
