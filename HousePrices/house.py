@@ -6,7 +6,7 @@ import numpy as np
 import seaborn as sns
 
 import sklearn
-from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.pipeline import Pipeline, FeatureUnion, make_pipeline
 from sklearn.impute import SimpleImputer, MissingIndicator
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, Normalizer, StandardScaler, RobustScaler ,OneHotEncoder
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, RegressorMixin, clone
