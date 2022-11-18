@@ -197,6 +197,7 @@ def map_values():
     origin["oSaleCondition"] = origin.SaleCondition.map({'AdjLand':1, 'Abnorml':2, 'Alloca':2, 'Family':2, 'Normal':3, 'Partial':4})            
                 
     return "Done!"
+map_values()
 
 origin.drop("LotAreaCut",axis=1,inplace=True)
 origin.drop(['SalePrice'],axis=1,inplace=True)
