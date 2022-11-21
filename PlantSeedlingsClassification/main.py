@@ -211,10 +211,10 @@ def train(model, optimizer, loss_fn, epochs=10, device=device):
             # store the statistics for plotting and step lr scheduler
             if phase == 'train':
                 train_loss.append(epoch_loss)
-                train_acc.append(epoch_accuracy)
+                train_acc.append(epoch_accuracy.cpu().numpy())
             else:
                 val_loss.append(epoch_loss)
-                val_acc.append(epoch_accuracy)
+                val_acc.append(epoch_accuracy.cpu().numpy())
                 scheduler.step(epoch_accuracy) ## step the learning rate in validation phase to avoid overfitting of the dataset
                 
             print('{} Loss {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_accuracy))
@@ -224,6 +224,7 @@ def train(model, optimizer, loss_fn, epochs=10, device=device):
                 best_acc = epoch_accuracy
                 best_model_wts = model.state_dict()
                 
+                
         
                 
     time_elapsed = time.time() - start_time    
@@ -231,7 +232,7 @@ def train(model, optimizer, loss_fn, epochs=10, device=device):
     print('Best accuracy {:.4f}'.format(best_acc))
     model.load_state_dict(best_model_wts)
     
-    
+
     ## plot the statistics
     fig, (ax1,ax2) = plt.subplots(nrows=1,ncols=2, sharex=True)
     ax1.plot(train_loss)
@@ -247,14 +248,14 @@ def train(model, optimizer, loss_fn, epochs=10, device=device):
     return model
 
 
-trained_model = train(model,opt, loss_fn, device=device, epochs=100)
+trained_model = train(model,opt, loss_fn, device=device, epochs=10)
 
 state_dict = trained_model.state_dict() 
 torch.save(state_dict, 'model.pth')
 
 images_per_class(valid_data)
 
-def plot_confusion_matrix(model, dataloader, device='gpu'):
+def plot_confusion_matrix(model, dataloader, device='cpu'):
     y_true = []
     y_preds = []
     model = model.to(device)
@@ -311,9 +312,9 @@ val_cm = plot_confusion_matrix(trained_model,val_dataloader,device=device)
 evaluation_statistics(val_cm)
 
 
-test_folder = '/kaggle/input/plant-seedlings-classification/test'
+test_folder = 'E:/py/MachineLearing/MachineLearning-CourseExercise/PlantSeedlingsClassification/test'
 
-def predict_test_images(folder, model, device='gpu'):
+def predict_test_images(folder, model, device='cpu'):
     classification = []
     model = model.to(device)
     for image_file_name in tqdm(os.listdir(folder)):
