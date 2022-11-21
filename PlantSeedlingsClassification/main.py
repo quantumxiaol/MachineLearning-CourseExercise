@@ -248,7 +248,7 @@ def train(model, optimizer, loss_fn, epochs=10, device=device):
     return model
 
 
-trained_model = train(model,opt, loss_fn, device=device, epochs=10)
+trained_model = train(model,opt, loss_fn, device=device, epochs=50)
 
 state_dict = trained_model.state_dict() 
 torch.save(state_dict, 'model.pth')
