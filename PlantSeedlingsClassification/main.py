@@ -135,8 +135,8 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(device)
 
 model = models.resnet50(pretrained=True)
-#I recommend training with these layers unfrozen for a couple of epochs after the initial frozen training
-for param in model.parameters():  ## freezing the initial layers
+# freezing the initial layers
+for param in model.parameters(): 
     param.requires_grad = False
     
 model.fc = nn.Sequential(
