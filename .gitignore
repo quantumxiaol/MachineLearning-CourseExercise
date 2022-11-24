@@ -1,7 +1,9 @@
 
 
 .idea/
-.pth
+*.pth
 .csv
+*.pkl
+*.pkL
 #忽略pycharm的虚拟环境
 venv/

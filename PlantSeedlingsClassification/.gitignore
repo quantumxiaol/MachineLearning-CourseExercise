@@ -1,6 +1,7 @@
 
 
 .idea/
-
+*.pkL
+*.pkl
 #忽略pycharm的虚拟环境
 venv/
