@@ -19,6 +19,9 @@ from torchvision import transforms, datasets, models
 import os
 
 training_folder = 'E:/py/MachineLearing/MachineLearning-CourseExercise/PlantSeedlingsClassification/train'
+test_folder = 'E:/py/MachineLearing/MachineLearning-CourseExercise/PlantSeedlingsClassification/test'
+
+
 def return_classes(parent_folder):
     classes = {}
     for i,plant_type in enumerate(os.listdir(parent_folder)):
@@ -144,10 +147,8 @@ loss_fn = nn.CrossEntropyLoss()
 opt = optim.Adam(model.parameters())
 # lr scheduler - reduce on loss plateau decay
 # lr = lr * factor 
-# mode (str) – One of min, max. In min mode, lr will be reduced when the quantity monitored has stopped decreasing; 
-# in max mode it will be reduced when the quantity monitored has stopped increasing. Default: ‘min
-# patience: number of epochs - 1 where loss plateaus before decreasing LR
-        # patience = 0, after 1 bad epoch, reduce LR
+# 在min模式下,当数量停止减少时,lr将减少,在max模式下,当数量停止增加时,将lr减少
+
 # factor = decaying factor
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5, factor=0.1, verbose=True, mode='max')
 
@@ -304,15 +305,12 @@ train_dataloader= DataLoader(datasets['train'], shuffle=False, batch_size=32)
 train_cm = plot_confusion_matrix(trained_model,train_dataloader,device=device)
 evaluation_statistics(train_cm)
 
- 
 datasets['validation'] = Plant_Dataset(valid_data, validation_transform)
 val_dataloader= DataLoader(datasets['validation'], shuffle=False, batch_size=32)
 
 val_cm = plot_confusion_matrix(trained_model,val_dataloader,device=device)
 evaluation_statistics(val_cm)
 
-
-test_folder = 'E:/py/MachineLearing/MachineLearning-CourseExercise/PlantSeedlingsClassification/test'
 
 def predict_test_images(folder, model, device='cpu'):
     classification = []
