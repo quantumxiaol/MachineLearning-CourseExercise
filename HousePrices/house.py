@@ -1,7 +1,14 @@
 import torch
 import torch.nn as nn
+import csv
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
+import scipy
+from scipy import stats
+from scipy.stats import skew
+from scipy.special import boxcox1p
+
 import numpy as np
 import seaborn as sns
 
@@ -13,9 +20,8 @@ from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, Regre
 
 import sklearn_pandas
 from sklearn.metrics import accuracy_score, mean_squared_error
-from sklearn.model_selection import cross_val_score,train_test_split
-from sklearn.model_selection import GridSearchCV, KFold
-
+from sklearn.model_selection import cross_val_score, train_test_split, GridSearchCV, KFold
+from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, SGDRegressor, BayesianRidge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.kernel_ridge import KernelRidge
@@ -23,14 +29,6 @@ from sklearn.svm import SVR, LinearSVR
 from sklearn.decomposition import PCA, KernelPCA
 
 from xgboost import XGBRegressor
-
-import scipy
-from scipy import stats
-from scipy.stats import skew
-from scipy.special import boxcox1p
-
-import csv
-import sys
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -65,7 +63,7 @@ aa[aa>0].sort_values(ascending=False)
 
 origin.groupby(['Neighborhood'])[['LotFrontage']].agg(['mean','median','count'])
 
-#让我们首先根据LotArea和Neighborhood的中值输入LotFrontage的缺失值。由于LotArea是一个连续的特性，使用qcut将其分为10个部分。
+#根据LotArea和Neighborhood的中值输入LotFrontage的缺失值。由于LotArea是一个连续的特性，使用qcut将其分为10个部分。
 origin["LotAreaCut"] = pd.qcut(origin.LotArea,10)
 origin.groupby(['LotAreaCut'])[['LotFrontage']].agg(['mean','median','count'])
 
@@ -118,7 +116,7 @@ for col in NumStr:
 
 origin.groupby(['MSSubClass'])[['SalePrice']].agg(['mean','median','count'])
 
-def map_values():
+def class_filter():
     origin["oMSSubClass"] = origin.MSSubClass.map({ '180':1, 
                                                     '30':2, '45':2, 
                                                     '190':3, '50':3, '90':3, 
@@ -196,8 +194,8 @@ def map_values():
     
     origin["oSaleCondition"] = origin.SaleCondition.map({'AdjLand':1, 'Abnorml':2, 'Alloca':2, 'Family':2, 'Normal':3, 'Partial':4})            
                 
-    return "Done!"
-map_values()
+    return "class_filter"
+class_filter()
 
 origin.drop("LotAreaCut",axis=1,inplace=True)
 origin.drop(['SalePrice'],axis=1,inplace=True)
@@ -239,9 +237,9 @@ pipe0 = Pipeline([
     ])
 
 # save the original data for later use
-fu = origin.copy()
+originCopy = origin.copy()
 
-data_pipe = pipe0.fit_transform(fu)
+data_pipe = pipe0.fit_transform(originCopy)
 
 #data_pipe.shape  (2917, 405)
 #使用RobustScaler()，应对可能的其他异常值。
@@ -385,7 +383,7 @@ for name, model in zip(names, models):
     score = rmse_cv(model, X_scaled, y_log)
     print("{}: {:.6f}, {:.4f}".format(name,score.mean(),score.std()))
 
-#定义一个网格搜索方法进行一些超参数调优。
+# 定义一个网格搜索方法进行一些超参数调优。
 class grid():
     def __init__(self,model):
         self.model = model
@@ -397,7 +395,7 @@ class grid():
         grid_search.cv_results_['mean_test_score'] = np.sqrt(-grid_search.cv_results_['mean_test_score'])
         print(pd.DataFrame(grid_search.cv_results_)[['params','mean_test_score','std_test_score']])
 
-
+# 超参数调优
 grid(Lasso()).grid_get(X_scaled,y_log,{'alpha': [0.0004,0.0005,0.0007,0.0006,0.0009,0.0008],'max_iter':[10000]})
 grid(Ridge()).grid_get(X_scaled,y_log,{'alpha':[35,40,45,50,55,60,65,70,80,90]})
 grid(SVR()).grid_get(X_scaled,y_log,{'C':[11,12,13,14,15],'kernel':["rbf"],"gamma":[0.0003,0.0004],"epsilon":[0.008,0.009]})
@@ -450,6 +448,9 @@ rmse_cv(weight_avg,X_scaled,y_log),  rmse_cv(weight_avg,X_scaled,y_log).mean()
 #特别的，如果只平均两个最好的模型，会获得更好的交叉验证得分。
 
 weight_avg = AverageWeight(mod = [svr,ker],weight=[0.5,0.5])
+rmse_cv(weight_avg,X_scaled,y_log),  rmse_cv(weight_avg,X_scaled,y_log).mean()
+
+weight_avg = AverageWeight(mod = [ridge,svr,ker],weight=[0.3,0.4,0.4])
 rmse_cv(weight_avg,X_scaled,y_log),  rmse_cv(weight_avg,X_scaled,y_log).mean()
 
 class stacking(BaseEstimator, RegressorMixin, TransformerMixin):
@@ -510,7 +511,7 @@ print(rmse_cv(stack_model,X_train_add,b).mean())
 ###Submission
 
 
-stack_model = stacking(mod=[lasso,ridge,svr,ker,ela,bay],meta_model=ker)
+stack_model = stacking(mod=[ridge,svr,ker],meta_model=ker)
 stack_model.fit(a,b)
 pred = np.exp(stack_model.predict(test_X_scaled))
 result=pd.DataFrame({'Id':test.Id, 'SalePrice':pred})
